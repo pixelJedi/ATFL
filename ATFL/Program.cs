@@ -10,6 +10,15 @@ namespace ATFL
     {
         static void Main(string[] args)
         {
+            SM testmachine;
+            string testring;
+            do
+            {
+                Console.WriteLine("Введите новые правила");
+                testring = Console.ReadLine();
+
+                if (testring != "q") testmachine = new SM(testring);
+            } while (testring != "q");
         }
     }
 }
