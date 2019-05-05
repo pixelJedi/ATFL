@@ -23,6 +23,7 @@ namespace ATFL
                     testring = fs.ReadLine();
                     if (testring == null || testring == "q") break;
                     testmachine = new SM(testring);
+                    SM DFM = testmachine.DFMFromNFM();
                 }
             }
         }

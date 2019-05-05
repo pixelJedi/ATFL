@@ -11,7 +11,7 @@ namespace ATFL
     {
         private List<TransRule> StateTable;         /// Таблица переходов
 
-        public string[] FinalState { get; set; }    /// Множество конечных состояний
+        public List<string> FinalState;             /// Множество конечных состояний
         public string Alphabet { get; set; }
         public string CurrentState { get; set; }    /// Текущее состояние
         public string StartState { get; set; }      /// Начальное состояние
@@ -19,28 +19,30 @@ namespace ATFL
         public SM(string TransitionRules)
         {
             StateTable = new List<TransRule>();
+            FinalState = new List<string>();
             Alphabet = "";
             if (ParseOK(TransitionRules))
             {
-                foreach (TransRule TR in StateTable) TR.DisplayRule();
                 SortStateTable();
-                Console.WriteLine("Sorted:");
-                foreach (TransRule TR in StateTable) TR.DisplayRule();
                 CurrentState = StartState;
                 Alphabet = GetRealAlphabet();
             }
             else
                 Console.WriteLine("Не удалось заполнить таблицу переходов");
         }
+        public SM(string Alphabet, List<TransRule> StateTable, string StartState, List<string> FinalState)
+        {
+            this.StartState = StartState;
+            this.FinalState = FinalState;
+            this.Alphabet = Alphabet;
+            this.StateTable = StateTable;
+        }
         public SM(string Alphabet, string TransitionRules)
         {
             StateTable = new List<TransRule>();
             this.Alphabet = Alphabet;
             if (ParseOK(TransitionRules))
-            {
-                foreach (TransRule TR in StateTable) TR.DisplayRule();
                 CurrentState = StartState;
-            }
             else
                 Console.WriteLine("Не удалось заполнить таблицу переходов");
         }
@@ -69,7 +71,7 @@ namespace ATFL
             string str = "";
             foreach (TransRule rule in StateTable)
             {
-                if (!str.Contains(rule.symbol)) str += rule.symbol;
+                if (!str.Contains(rule.Symbol)) str += rule.Symbol;
             }
             return str;
         }
@@ -78,8 +80,8 @@ namespace ATFL
             List<string> str = new List<string>();
             foreach (TransRule rule in StateTable)
             {
-                if (!str.Contains(rule.next)) str.Add(rule.next);
-                if (!str.Contains(rule.current)) str.Add(rule.current);
+                if (!str.Contains(rule.Next)) str.Add(rule.Next);
+                if (!str.Contains(rule.Current)) str.Add(rule.Current);
             }
             return str.ToArray();
         }
@@ -92,16 +94,15 @@ namespace ATFL
             if (matches.Count > 0)
             {
                 string[] groups = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (existsInTable(groups[0])) StartState = groups[0];
+                if (ExistsInTable(groups[0])) StartState = groups[0];
                 else
                 {
                     Console.WriteLine("Заданное начальное состояние не существует");
                     return false;
                 }
-                FinalState = new string[groups.Length - 1];
-                for (int i = 0; i < FinalState.Length; i++)
+                for (int i = 0; i < groups.Length - 2; i++)
                 {
-                    if (existsInTable(groups[i+1])) FinalState[i] = groups[i + 1];
+                    if (ExistsInTable(groups[i+1])) FinalState[i] = groups[i + 1];
                     else
                     {
                         Console.WriteLine($"Заданное состояние {groups[i+1]} не существует");
@@ -116,22 +117,22 @@ namespace ATFL
                 return false;
             }
         }
-        private bool existsInTable(string state)
+        private bool ExistsInTable(string state)
         {
             bool exists = false;
             foreach (TransRule rule in StateTable)
-                if (rule.current == state || rule.next == state)
+                if (rule.Current == state || rule.Next == state)
                 {
                     exists = true;
                     break;
                 }
             return exists;
         }
-        private bool existsInTable(List<TransRule> stateTable, string state)
+        private bool ExistsInTable(List<TransRule> stateTable, string state)
         {
             bool exists = false;
             foreach (TransRule rule in stateTable)
-                if (rule.current == state)
+                if (rule.Current == state)
                 {
                     exists = true;
                     break;
@@ -170,38 +171,50 @@ namespace ATFL
             StateTable.Sort(rc);
         }
         
-        public SM DSMFromNSM()
+        public SM DFMFromNFM()
         {
             List<TransRule> newStateTable = new List<TransRule>();
-            List<string> P = new List<string>();
+            Queue<List<string>> P = new Queue<List<string>>();
+
             int count = 1;
             Console.WriteLine($"Шаг {count}: Поместим стартовую вершину в таблицу");
-            // 1. Помещаем в очередь множество из стартовой вершины
-            P.Add(StartState);
-            // 2. Пока очередь не опустеет, разбираем ветви
+            P.Enqueue(new List <string> { StartState });
+            List <string> newFinalState = new List<string>();
             while (P.Count != 0)
             {
-                Console.WriteLine($"Шаг {++count}. Рассматриваем множество вершин");
-                // 3. Достаем из очереди множество вершин
-                string[] temp = new string[P.Count]; P.CopyTo(temp); P.Clear();
-                foreach (string state in temp)
-                {
-                    // 4. Для всех символов в алфавите ... 
+                List<string> set = P.Dequeue();
+                //foreach (List <string> set in P)
+                //{
+                    Console.WriteLine($"Шаг {++count}. Рассматриваем множество вершин {string.Join(null, set)}");
                     foreach (char c in Alphabet)
                     {
-                        // Найдем множество результирующих состояний из рассматриваемой вершины
-                        List<string> nextStates = StateTable.FindAll(x => x.current == state && x.symbol == c).Select(x => x.next).ToList();
-                        string unifiedNextState = string.Join(null, nextStates);
-                        // Если такого множества еще не было, добавляем в очередь
-
-                        if (!existsInTable(newStateTable, unifiedNextState))
-                            foreach (string nextState in nextStates) P.Add(nextState);
-                        // Добавляем правило перехода
-                        newStateTable.Add(new TransRule(state, c, unifiedNextState));
+                        bool isFinal = FindNextStatesInSet(set, c, out List<string> nextStates);
+                        string newStateFromSet = string.Join(null, nextStates);
+                        if (isFinal) newFinalState.Add(newStateFromSet);
+                        if (!ExistsInTable(newStateTable, newStateFromSet)) P.Enqueue(nextStates);
+                        newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
                     }
-                }
+                //}
             }
-            throw new Exception();
+            SM newSM = new SM(Alphabet, newStateTable, StartState, newFinalState);
+            return newSM;
+        }
+
+        private bool FindNextStatesInSet(List<string> set, char sym, out List<string> nextStates)
+        {
+            nextStates = new List<string>();
+            foreach (string state in set)
+                nextStates.AddRange(StateTable.FindAll(x => x.Current == state && x.Symbol == sym).Select(x => x.Next).ToList());
+            bool isFin = false;
+            foreach (string state in nextStates)
+                if (FinalState.Contains(state)) isFin = true;
+            return isFin;
+        }
+
+        public void Show()
+        {
+            foreach (TransRule rule in StateTable)
+                rule.DisplayRule();
         }
     }
     
@@ -209,7 +222,7 @@ namespace ATFL
     {
         public int Compare(TransRule o1, TransRule o2)
         {
-            int result = String.Compare(o1.current, o2.current);
+            int result = String.Compare(o1.Current, o2.Current);
             if (result > 0)
             {
                 return 1;
@@ -220,11 +233,11 @@ namespace ATFL
             }
             else
             {
-                if (o1.symbol > o2.symbol) return 1;
-                else if (o1.symbol < o2.symbol) return -1;
+                if (o1.Symbol > o2.Symbol) return 1;
+                else if (o1.Symbol < o2.Symbol) return -1;
                 else
                 {
-                    result = String.Compare(o1.next, o2.next);
+                    result = String.Compare(o1.Next, o2.Next);
                     if (result > 0) return 1;
                     else if (result < 0) return -1;
                     else return 0;
@@ -235,19 +248,19 @@ namespace ATFL
     }
     class TransRule
     { 
-        public string current { get; set; }
-        public char   symbol  { get; set; }
-        public string next    { get; set; }
+        public string Current { get; set; }
+        public char   Symbol  { get; set; }
+        public string Next    { get; set; }
         
         public TransRule(string current, char symbol, string next)
         {
-            this.current = current;
-            this.symbol = symbol;
-            this.next = next;
+            this.Current = current;
+            this.Symbol = symbol;
+            this.Next = next;
         }
         public void DisplayRule()
         {
-            Console.WriteLine($"{current}: {symbol} -> {next}");
+            Console.WriteLine($"{Current}: {Symbol} -> {Next}");
         }
     }
 
