@@ -42,15 +42,42 @@ namespace ATFL
         {
             bool isOK = true;
 
-            string[] rules = input.Split(',');
-            if (rules.Contains(""))
+            string[] rules = input.Split(new char[] {'|',','});
+            if (!rules.Contains(""))
+            {
+                for (int i = 0; i < rules.Length - 1; i++)
+                    isOK = isOK && FillStates(rules[i]);
+                isOK = isOK && FillStartFin(rules[rules.Length - 1]);
+            }
+            else
             {
                 Console.WriteLine("Неверный синтаксис (лишняя запятая)");
                 isOK = false;
             }
-            else
-                foreach (string rule in rules) isOK = isOK && FillStates(rule);
             return isOK;
+        }
+
+        private bool FillStartFin(string input)
+        {
+
+            Regex regex = new Regex(@"\s*\w+\s*(\s+\w+\s*)+");  // Ввод по образцу (s1 s2, ...)
+            MatchCollection matches = regex.Matches(input);
+            if (matches.Count > 0)
+            {
+                string[] groups = input.Split(',');
+                StartState = groups[0];
+                FinalState = new string[groups.Length - 1];
+                for (int i = 0; i < FinalState.Length; i++)
+                {
+                    FinalState[i] = groups[i + 1];
+                }
+                return true;
+            }
+            else
+            {
+                Console.WriteLine("Список состояний не соответствует установленному шаблону");
+                return false;
+            }
         }
 
         private bool FillStates(string input)
