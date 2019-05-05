@@ -11,14 +11,16 @@ namespace ATFL
         static void Main(string[] args)
         {
             SM testmachine;
-            string testring;
+            string testring, testalpha;
             do
             {
+                Console.WriteLine("Введите алфавит");
+                testalpha = Console.ReadLine();
                 Console.WriteLine("Введите новые правила");
                 testring = Console.ReadLine();
 
-                if (testring != "q") testmachine = new SM(testring);
-            } while (testring != "q");
+                testmachine = new SM(testalpha, testring);
+            } while (testring != "q"|| testalpha != "q");
         }
     }
 }

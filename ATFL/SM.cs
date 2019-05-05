@@ -9,40 +9,43 @@ namespace ATFL
 {
     class SM
     {
-        private List <TransRule> StateTable;       /// Таблица переходов
-        private string      CurrentState;     /// Текущее состояние
-        private string      StartState;       /// Начальное состояние
-        private string[]    FinalState;       /// Множество конечных состояний
+        private List<TransRule> StateTable;         /// Таблица переходов
+
+        public string[] FinalState { get; set; }    /// Множество конечных состояний
+        public string Alphabet { get; set; }
+        public string CurrentState { get; set; }    /// Текущее состояние
+        public string StartState { get; set; }      /// Начальное состояние
 
         public SM(string TransitionRules)
         {
-            /* Строка передается в парсер, тот возвращает успех/неуспех и структурированный результат
-             * Если успех, записываем
-             * Если неуспех, вывод: неверно задана таблица
-             */
             StateTable = new List<TransRule>();
-            if (!ParseOK(TransitionRules))
+            if (ParseOK(TransitionRules))
             {
-                Console.WriteLine("Не удалось заполнить таблицу переходов");
-                StartState = "";
+                foreach (TransRule TR in StateTable) TR.DisplayRule();
                 CurrentState = StartState;
-                FinalState = new string[] { StartState };
+                Alphabet = GetRealAlphabet();
             }
-            else foreach (TransRule TR in StateTable)
-                {
-                    TR.DisplayRule();
-                    StartState = StateTable[0].current;
-                    CurrentState = StartState;
-                    FinalState = new string[] { StartState };
-
-                }
+            else
+                Console.WriteLine("Не удалось заполнить таблицу переходов");
+        }
+        public SM(string Alphabet, string TransitionRules)
+        {
+            StateTable = new List<TransRule>();
+            this.Alphabet = Alphabet;
+            if (ParseOK(TransitionRules))
+            {
+                foreach (TransRule TR in StateTable) TR.DisplayRule();
+                CurrentState = StartState;
+            }
+            else
+                Console.WriteLine("Не удалось заполнить таблицу переходов");
         }
 
         private bool ParseOK(string input)
         {
             bool isOK = true;
 
-            string[] rules = input.Split(new char[] {'|',','});
+            string[] rules = input.Split(new char[] { '|', ',' });
             if (!rules.Contains(""))
             {
                 for (int i = 0; i < rules.Length - 1; i++)
@@ -55,6 +58,27 @@ namespace ATFL
                 isOK = false;
             }
             return isOK;
+        }
+
+        public string GetRealAlphabet()     // Возваращает перечень взодных символов, задействованных в текущей таблице переходов
+        {
+            string str = "";
+            foreach (TransRule rule in StateTable)
+            {
+                if (!str.Contains(rule.symbol)) str += rule.symbol;
+            }
+            return str;
+        }
+
+        public string[] GetSetOfStates()    // Возвращает массив наименований состояний, задействованных в таблице переходов
+        {
+            List<string> str = new List<string>();
+            foreach (TransRule rule in StateTable)
+            {
+                if (!str.Contains(rule.next)) str.Add(rule.next);
+                if (!str.Contains(rule.current)) str.Add(rule.current);
+            }
+            return str.ToArray();
         }
 
         private bool FillStartFin(string input)
@@ -108,7 +132,15 @@ namespace ATFL
             {
                 string[] groups = input.Split(new char[] { ' ', ':', '-', '>' }, StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < groups.Length; i = i + 3)
-                    StateTable.Add(new TransRule(groups[i], groups[i + 1][0], groups[i + 2]));
+                {
+                    if (Alphabet == "" || Alphabet.Contains(groups[i + 1][0]))
+                        StateTable.Add(new TransRule(groups[i], groups[i + 1][0], groups[i + 2]));
+                    else
+                    {
+                        Console.WriteLine($"Символ {groups[i + 1][0]} не включен во входной алфавит");
+                        return false;
+                    }
+                }
                 return true;
             }
             else
@@ -117,7 +149,6 @@ namespace ATFL
                 return false;
             }
         }
-
     }
 
     class TransRule
