@@ -19,8 +19,12 @@ namespace ATFL
         public SM(string TransitionRules)
         {
             StateTable = new List<TransRule>();
+            Alphabet = "";
             if (ParseOK(TransitionRules))
             {
+                foreach (TransRule TR in StateTable) TR.DisplayRule();
+                SortStateTable();
+                Console.WriteLine("Sorted:");
                 foreach (TransRule TR in StateTable) TR.DisplayRule();
                 CurrentState = StartState;
                 Alphabet = GetRealAlphabet();
@@ -69,7 +73,6 @@ namespace ATFL
             }
             return str;
         }
-
         public string[] GetSetOfStates()    // Возвращает массив наименований состояний, задействованных в таблице переходов
         {
             List<string> str = new List<string>();
@@ -126,7 +129,7 @@ namespace ATFL
         }
         private bool FillStates(string input)
         {   
-            Regex regex = new Regex(@"\s*\w+\s*:\s*\w\s*->\s*\w+\s*");  // Ввод по образцу [current]: [symbol] -> [next]
+            Regex regex = new Regex(@"\s*\w+\s*:\s*(\w|\?)\s*->\s*\w+\s*");  // Ввод по образцу [current]: [symbol] -> [next]
             MatchCollection matches = regex.Matches(input);
             if (matches.Count == 1)
             {
@@ -149,8 +152,48 @@ namespace ATFL
                 return false;
             }
         }
-    }
 
+        private void SortStateTable()
+        {
+            RuleComparer rc = new RuleComparer();
+            StateTable.Sort(rc);
+        }
+
+
+        public SM DSMFromNSM()
+        {
+            throw new Exception();
+        }
+    }
+    
+    class RuleComparer : IComparer<TransRule>
+    {
+        public int Compare(TransRule o1, TransRule o2)
+        {
+            int result = String.Compare(o1.current, o2.current);
+            if (result > 0)
+            {
+                return 1;
+            }
+            else if (result < 0)
+            {
+                return -1;
+            }
+            else
+            {
+                if (o1.symbol > o2.symbol) return 1;
+                else if (o1.symbol < o2.symbol) return -1;
+                else
+                {
+                    result = String.Compare(o1.next, o2.next);
+                    if (result > 0) return 1;
+                    else if (result < 0) return -1;
+                    else return 0;
+                    }
+                }
+            }
+        }
+    }
     class TransRule
     { 
         public string current { get; set; }
@@ -168,4 +211,4 @@ namespace ATFL
             Console.WriteLine($"{current}: {symbol} -> {next}");
         }
     }
-}
+
