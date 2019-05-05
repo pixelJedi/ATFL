@@ -127,6 +127,17 @@ namespace ATFL
                 }
             return exists;
         }
+        private bool existsInTable(List<TransRule> stateTable, string state)
+        {
+            bool exists = false;
+            foreach (TransRule rule in stateTable)
+                if (rule.current == state)
+                {
+                    exists = true;
+                    break;
+                }
+            return exists;
+        }
         private bool FillStates(string input)
         {   
             Regex regex = new Regex(@"\s*\w+\s*:\s*(\w|\?)\s*->\s*\w+\s*");  // Ввод по образцу [current]: [symbol] -> [next]
@@ -158,10 +169,38 @@ namespace ATFL
             RuleComparer rc = new RuleComparer();
             StateTable.Sort(rc);
         }
-
-
+        
         public SM DSMFromNSM()
         {
+            List<TransRule> newStateTable = new List<TransRule>();
+            List<string> P = new List<string>();
+            int count = 1;
+            Console.WriteLine($"Шаг {count}: Поместим стартовую вершину в таблицу");
+            // 1. Помещаем в очередь множество из стартовой вершины
+            P.Add(StartState);
+            // 2. Пока очередь не опустеет, разбираем ветви
+            while (P.Count != 0)
+            {
+                Console.WriteLine($"Шаг {++count}. Рассматриваем множество вершин");
+                // 3. Достаем из очереди множество вершин
+                string[] temp = new string[P.Count]; P.CopyTo(temp); P.Clear();
+                foreach (string state in temp)
+                {
+                    // 4. Для всех символов в алфавите ... 
+                    foreach (char c in Alphabet)
+                    {
+                        // Найдем множество результирующих состояний из рассматриваемой вершины
+                        List<string> nextStates = StateTable.FindAll(x => x.current == state && x.symbol == c).Select(x => x.next).ToList();
+                        string unifiedNextState = string.Join(null, nextStates);
+                        // Если такого множества еще не было, добавляем в очередь
+
+                        if (!existsInTable(newStateTable, unifiedNextState))
+                            foreach (string nextState in nextStates) P.Add(nextState);
+                        // Добавляем правило перехода
+                        newStateTable.Add(new TransRule(state, c, unifiedNextState));
+                    }
+                }
+            }
             throw new Exception();
         }
     }
