@@ -16,6 +16,8 @@ namespace ATFL
             {
                 int i = 1;
                 string DestDir = @"D:\Test\";
+                string TaskName = "ConvertToDKA";
+                string ExtensionName = ".txt";
                 TextWriter tmp = Console.Out;
                 while (true)
                 {
@@ -23,26 +25,21 @@ namespace ATFL
                     if (testring == null || testring == "q")
                     {
                         Console.SetOut(tmp);
-                        Console.WriteLine("Успешно. Записанные файлы хранятся по адресу "+ DestDir);
+                        Console.WriteLine($"Успешно. Записанные файлы ({i-1}) хранятся по адресу {DestDir}");
                         break;
                     }
                     else
                     {
-                        using (StreamWriter log = new StreamWriter(DestDir+"ConvertToDKA" + i++ + ".txt"))
+                        using (StreamWriter log = new StreamWriter(DestDir + TaskName + i++ + ExtensionName))
                         {
-                            //StreamWriter sw = new StreamWriter(log);
                             Console.SetOut(log);
-                            //using (LogWriter log = new LogWriter(@"D:\Test\Automata" + (i++) + ".txt"))
-                            {
-                                //Console.SetOut(log);
-                                Console.WriteLine("----Исходная конфигурация--------------------------------");
-                                SM NFM = new SM(testring);
-                                NFM.Show();
-                                Console.WriteLine("----Преобразование в ДКА---------------------------------");
-                                SM DFM = NFM.DFMFromNFM();
-                                Console.WriteLine("----Итоговая конфигурация--------------------------------");
-                                DFM.Show();
-                            }
+                            Console.WriteLine("--------Исходная конфигурация------------------------------");
+                            SM NFM = new SM(testring);
+                            NFM.Show();
+                            Console.WriteLine("--------Преобразование в ДКА-------------------------------");
+                            SM DFM = NFM.DFMFromNFM();
+                            Console.WriteLine("--------Итоговая конфигурация------------------------------");
+                            DFM.Show();
                         }
                     }
                 }

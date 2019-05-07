@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 
 namespace ATFL
@@ -175,40 +173,45 @@ namespace ATFL
         {
             List<TransRule> newStateTable = new List<TransRule>(); /// Новая (пустая) таблица состояний
             List<string> newFinalState = new List<string>();       /// Новый (пустой) список конечных состояний
-            Queue<List<string>> P = new Queue<List<string>>();     /// Очередь для последовательного разбора множеств состояний
+            Queue<List<string>> Q = new Queue<List<string>>();     /// Очередь для последовательного разбора множеств состояний
 
-            int count = 1;                                         /// Для нумерации этапов
-            Console.WriteLine($"Шаг {count}: Поместим стартовую вершину {StartState} в очередь");
-            P.Enqueue(new List<string> { StartState });            // Стартовая вершина включена в список
-            while (P.Count != 0)                                   // Пока не будут разобраны все связи
+            int count = 0;                                         /// Нумерация этапов
+            Console.WriteLine("Q - очередь разбора связей.");
+            Console.WriteLine($"Изначально в Q находится стартовое состояние {{{StartState}}}.");
+            Q.Enqueue(new List<string> { StartState });            // Стартовая вершина включена в список
+            while (Q.Count != 0)                                   // Пока не будут разобраны все связи
             {
-                List<string> set = P.Dequeue();                    // 1. Вытаскиваем множество состояний из очереди
-                Console.WriteLine($"Шаг {++count}. Рассматриваем множество вершин {{{string.Join(",", set)}}}");
+                List<string> set = Q.Dequeue();                    // 1. Вытаскиваем множество состояний из очереди
+                Console.WriteLine($"\nШаг {++count}. Вынимаем из Q множество {{{string.Join(",", set)}}}.");
                 foreach (char c in Alphabet)                       // 2. Для каждой буквы находим next states этого множества
                 {
                     bool isFinal = FindNextStatesInSet(set, c, out List<string> nextStates);
                     string newStateFromSet = string.Join(null, nextStates);
                     if (nextStates.Count != 0)
                     {
+                        Console.Write($"\nШаг {count}.{c}. ");
+                        if (nextStates.Count > 1) Console.WriteLine($"Недетерминированность по символу {c}. Объединяем результаты перехода в множество:");
                         Console.WriteLine($"{string.Join(null, set)} : {c} -> {newStateFromSet}");
+                        Console.WriteLine("Новое правило перехода вносится в таблицу.");
                         if (isFinal && !ExistsInTable(newStateTable, newStateFromSet, 'n'))
                         {
-                            Console.WriteLine($"Одна из вершин была терминальной -> {newStateFromSet} также терминальна.");
+                            Console.WriteLine($"Состояние {newStateFromSet} - завершающее, т.к. среди исходных было завершающее.");
                             newFinalState.Add(newStateFromSet);
                         }
                         newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
                         if (!ExistsInTable(newStateTable, newStateFromSet) && newStateFromSet != StartState)
                         {
-                            Console.WriteLine($"Вершина {newStateFromSet} еще не рассматривалась. Помещаем ее в очередь.");
-                            P.Enqueue(nextStates);
+                            Console.WriteLine($"Cостояние {newStateFromSet} еще не рассмотрено. Помещаем его в Q.");
+                            Q.Enqueue(nextStates);
                         }
                         else
-                            Console.WriteLine($"Вершина {newStateFromSet} уже была в очереди. Переходим дальше.");
+                            Console.WriteLine($"Cостояние {newStateFromSet} уже рассмотрено. Переходим дальше.");
                     }
                 }
             }
-            Console.WriteLine("Все пути из начальной вершины рассмотрены. Конец алгоритма.");
+            Console.WriteLine("Q пуста => все пути из начальной вершины рассмотрены.");
             SM newSM = new SM(Alphabet, newStateTable, StartState, newFinalState);
+            newSM.SortStateTable();
             return newSM;
         }
 
