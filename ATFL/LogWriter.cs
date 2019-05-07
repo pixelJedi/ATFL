@@ -16,7 +16,7 @@ namespace ATFL
         }
         public override void Write(char value)
         {
-            //base.Write(value);
+            base.Write(value);
             testLog.Write(value);
         }
         public override Encoding Encoding

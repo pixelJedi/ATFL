@@ -173,18 +173,18 @@ namespace ATFL
 
         public SM DFMFromNFM()
         {
-            List<TransRule> newStateTable = new List<TransRule>();  /// Новая (пустая) таблица состояний
+            List<TransRule> newStateTable = new List<TransRule>(); /// Новая (пустая) таблица состояний
             List<string> newFinalState = new List<string>();       /// Новый (пустой) список конечных состояний
-            Queue<List<string>> P = new Queue<List<string>>();      /// Очередь для последовательного разбора множеств состояний
+            Queue<List<string>> P = new Queue<List<string>>();     /// Очередь для последовательного разбора множеств состояний
 
-            int count = 1;                                          /// Для нумерации этапов
+            int count = 1;                                         /// Для нумерации этапов
             Console.WriteLine($"Шаг {count}: Поместим стартовую вершину {StartState} в очередь");
             P.Enqueue(new List<string> { StartState });            // Стартовая вершина включена в список
-            while (P.Count != 0)                                    // Пока не будут разобраны все связи
+            while (P.Count != 0)                                   // Пока не будут разобраны все связи
             {
-                List<string> set = P.Dequeue();                     // 1. Вытаскиваем множество состояний из очереди
+                List<string> set = P.Dequeue();                    // 1. Вытаскиваем множество состояний из очереди
                 Console.WriteLine($"Шаг {++count}. Рассматриваем множество вершин {{{string.Join(",", set)}}}");
-                foreach (char c in Alphabet)                    // 2. Для каждой буквы находим next states этого множества
+                foreach (char c in Alphabet)                       // 2. Для каждой буквы находим next states этого множества
                 {
                     bool isFinal = FindNextStatesInSet(set, c, out List<string> nextStates);
                     string newStateFromSet = string.Join(null, nextStates);
@@ -196,15 +196,14 @@ namespace ATFL
                             Console.WriteLine($"Одна из вершин была терминальной -> {newStateFromSet} также терминальна.");
                             newFinalState.Add(newStateFromSet);
                         }
-                    newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
-                    if (!ExistsInTable(newStateTable, newStateFromSet) && newStateFromSet != StartState)
-                    {
-                        Console.WriteLine($"Вершина {newStateFromSet} еще не рассматривалась. Помещаем ее в очередь.");
-                        P.Enqueue(nextStates);
-                    }
-                    else
-                        Console.WriteLine($"Вершина {newStateFromSet} уже была в очереди. Переходим дальше.");
-
+                        newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
+                        if (!ExistsInTable(newStateTable, newStateFromSet) && newStateFromSet != StartState)
+                        {
+                            Console.WriteLine($"Вершина {newStateFromSet} еще не рассматривалась. Помещаем ее в очередь.");
+                            P.Enqueue(nextStates);
+                        }
+                        else
+                            Console.WriteLine($"Вершина {newStateFromSet} уже была в очереди. Переходим дальше.");
                     }
                 }
             }
