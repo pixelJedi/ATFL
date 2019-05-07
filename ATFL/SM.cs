@@ -100,12 +100,12 @@ namespace ATFL
                     Console.WriteLine("Заданное начальное состояние не существует");
                     return false;
                 }
-                for (int i = 0; i < groups.Length - 2; i++)
+                for (int i = 1; i < groups.Length; i++)
                 {
-                    if (ExistsInTable(groups[i+1])) FinalState[i] = groups[i + 1];
+                    if (ExistsInTable(groups[i])) FinalState.Add(groups[i]);
                     else
                     {
-                        Console.WriteLine($"Заданное состояние {groups[i+1]} не существует");
+                        Console.WriteLine($"Заданное состояние {groups[i]} не существует");
                         return false;
                     }
                 }
@@ -128,11 +128,11 @@ namespace ATFL
                 }
             return exists;
         }
-        private bool ExistsInTable(List<TransRule> stateTable, string state)
+        private bool ExistsInTable(List<TransRule> stateTable, string state, char c = 'c')
         {
             bool exists = false;
             foreach (TransRule rule in stateTable)
-                if (rule.Current == state)
+                if (c == 'c' && rule.Current == state || c == 'n' && rule.Next == state)
                 {
                     exists = true;
                     break;
@@ -170,32 +170,45 @@ namespace ATFL
             RuleComparer rc = new RuleComparer();
             StateTable.Sort(rc);
         }
-        
+
         public SM DFMFromNFM()
         {
-            List<TransRule> newStateTable = new List<TransRule>();
-            Queue<List<string>> P = new Queue<List<string>>();
+            List<TransRule> newStateTable = new List<TransRule>();  /// Новая (пустая) таблица состояний
+            List<string> newFinalState = new List<string>();       /// Новый (пустой) список конечных состояний
+            Queue<List<string>> P = new Queue<List<string>>();      /// Очередь для последовательного разбора множеств состояний
 
-            int count = 1;
-            Console.WriteLine($"Шаг {count}: Поместим стартовую вершину в таблицу");
-            P.Enqueue(new List <string> { StartState });
-            List <string> newFinalState = new List<string>();
-            while (P.Count != 0)
+            int count = 1;                                          /// Для нумерации этапов
+            Console.WriteLine($"Шаг {count}: Поместим стартовую вершину {StartState} в очередь");
+            P.Enqueue(new List<string> { StartState });            // Стартовая вершина включена в список
+            while (P.Count != 0)                                    // Пока не будут разобраны все связи
             {
-                List<string> set = P.Dequeue();
-                //foreach (List <string> set in P)
-                //{
-                    Console.WriteLine($"Шаг {++count}. Рассматриваем множество вершин {string.Join(null, set)}");
-                    foreach (char c in Alphabet)
+                List<string> set = P.Dequeue();                     // 1. Вытаскиваем множество состояний из очереди
+                Console.WriteLine($"Шаг {++count}. Рассматриваем множество вершин {{{string.Join(",", set)}}}");
+                foreach (char c in Alphabet)                    // 2. Для каждой буквы находим next states этого множества
+                {
+                    bool isFinal = FindNextStatesInSet(set, c, out List<string> nextStates);
+                    string newStateFromSet = string.Join(null, nextStates);
+                    if (nextStates.Count != 0)
                     {
-                        bool isFinal = FindNextStatesInSet(set, c, out List<string> nextStates);
-                        string newStateFromSet = string.Join(null, nextStates);
-                        if (isFinal) newFinalState.Add(newStateFromSet);
-                        if (!ExistsInTable(newStateTable, newStateFromSet)) P.Enqueue(nextStates);
-                        newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
+                        Console.WriteLine($"{string.Join(null, set)} : {c} -> {newStateFromSet}");
+                        if (isFinal && !ExistsInTable(newStateTable, newStateFromSet, 'n'))
+                        {
+                            Console.WriteLine($"Одна из вершин была терминальной -> {newStateFromSet} также терминальна.");
+                            newFinalState.Add(newStateFromSet);
+                        }
+                    newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
+                    if (!ExistsInTable(newStateTable, newStateFromSet) && newStateFromSet != StartState)
+                    {
+                        Console.WriteLine($"Вершина {newStateFromSet} еще не рассматривалась. Помещаем ее в очередь.");
+                        P.Enqueue(nextStates);
                     }
-                //}
+                    else
+                        Console.WriteLine($"Вершина {newStateFromSet} уже была в очереди. Переходим дальше.");
+
+                    }
+                }
             }
+            Console.WriteLine("Все пути из начальной вершины рассмотрены. Конец алгоритма.");
             SM newSM = new SM(Alphabet, newStateTable, StartState, newFinalState);
             return newSM;
         }
@@ -204,7 +217,7 @@ namespace ATFL
         {
             nextStates = new List<string>();
             foreach (string state in set)
-                nextStates.AddRange(StateTable.FindAll(x => x.Current == state && x.Symbol == sym).Select(x => x.Next).ToList());
+                nextStates = nextStates.Union(StateTable.FindAll(x => x.Current == state && x.Symbol == sym).Select(x => x.Next)).ToList();
             bool isFin = false;
             foreach (string state in nextStates)
                 if (FinalState.Contains(state)) isFin = true;
@@ -213,12 +226,18 @@ namespace ATFL
 
         public void Show()
         {
+            Console.WriteLine($"Начальное состояние: {StartState}");
+            if (FinalState.Count == 1) Console.Write("Конечное состояние: ");
+            else Console.Write("Конечные состояния: ");
+            foreach (var t in FinalState) Console.Write($"{t} ");
+            Console.WriteLine();
+            Console.WriteLine("Таблица переходов: ");
             foreach (TransRule rule in StateTable)
                 rule.DisplayRule();
         }
     }
-    
-    class RuleComparer : IComparer<TransRule>
+
+    internal class RuleComparer : IComparer<TransRule>
     {
         public int Compare(TransRule o1, TransRule o2)
         {
