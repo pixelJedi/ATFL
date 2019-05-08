@@ -226,16 +226,41 @@ namespace ATFL
             return isFin;
         }
 
-        public void Show()
+        public void Show(char mode = 'r')
         {
+            const int F = 10;
             Console.WriteLine($"Начальное состояние: {StartState}");
             if (FinalState.Count == 1) Console.Write("Конечное состояние: ");
             else Console.Write("Конечные состояния: ");
             foreach (var t in FinalState) Console.Write($"{t} ");
             Console.WriteLine();
             Console.WriteLine("Таблица переходов: ");
-            foreach (TransRule rule in StateTable)
-                rule.DisplayRule();
+            switch (mode)
+            {
+                case 't':
+                    // Особая первая строка
+                    Console.Write($"{' ',-F}");
+                    foreach (char c in Alphabet) Console.Write($"{c,-F}");
+                    Console.WriteLine();
+                    // Остальные строки
+                    string [] currNames = GetSetOfStates().ToArray();
+                    foreach (string state in currNames)
+                    {
+                        Console.Write($"{state,-F}");
+                        foreach (char c in Alphabet)
+                        {
+                            var nexts = StateTable.FindAll(x => x.Current == state && x.Symbol == c).Select(x => x.Next);
+                            if (nexts.Count() > 0) Console.Write($"{string.Join(",", nexts),-F}");
+                            else Console.Write($"{'-',-F}");
+                        }
+                        Console.WriteLine();
+                    }
+                    break;
+                default:
+                    foreach (TransRule rule in StateTable)
+                        rule.DisplayRule();
+                    break;
+            }
         }
     }
 
@@ -267,7 +292,8 @@ namespace ATFL
             }
         }
     }
-    class TransRule
+
+    internal class TransRule
     { 
         public string Current { get; set; }
         public char   Symbol  { get; set; }

@@ -40,6 +40,7 @@ namespace ATFL
                             SM DFM = NFM.DFMFromNFM();
                             Console.WriteLine("--------Итоговая конфигурация------------------------------");
                             DFM.Show();
+                            DFM.Show('t');
                         }
                     }
                 }
