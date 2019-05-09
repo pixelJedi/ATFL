@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace ATFL
@@ -12,7 +8,7 @@ namespace ATFL
         static void Main(string[] args)
         {
             string testring = "";
-            using (StreamReader fs = new StreamReader(@"testmachine.txt"))
+            using (StreamReader fs = new StreamReader(@"testmachine1.txt"))
             {
                 int i = 1;
                 string DestDir = @"D:\Test\";
@@ -33,14 +29,21 @@ namespace ATFL
                         using (StreamWriter log = new StreamWriter(DestDir + TaskName + i++ + ExtensionName))
                         {
                             Console.SetOut(log);
-                            Console.WriteLine("--------Исходная конфигурация------------------------------");
-                            SM NFM = new SM(testring);
-                            NFM.Show();
+                            Console.WriteLine("--------Ввод данных----------------------------------------");
+                            Console.WriteLine(testring);
+                            Console.WriteLine("--------Распознана конфигурация----------------------------");
+                            StateMachine NFM = new StateMachine(testring);
+                            NFM.Show('t');
+                            Console.WriteLine("--------Грамматика------------------------------");
+                            Grammar gr = new Grammar(NFM);
+                            gr.Show();
                             Console.WriteLine("--------Преобразование в ДКА-------------------------------");
-                            SM DFM = NFM.DFMFromNFM();
+                            StateMachine DFM = NFM.DFMFromNFM();
                             Console.WriteLine("--------Итоговая конфигурация------------------------------");
-                            DFM.Show();
                             DFM.Show('t');
+                            Console.WriteLine("--------Грамматика------------------------------");
+                            Grammar gr1 = new Grammar(DFM);
+                            gr.Show();
                         }
                     }
                 }

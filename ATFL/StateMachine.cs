@@ -5,8 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace ATFL
 {
-    class SM
+    class StateMachine
     {
+        public string Name { get; set; } = "ATFL";
         private List<TransRule> StateTable;         /// Таблица переходов
 
         public List<string> FinalState;             /// Множество конечных состояний
@@ -14,7 +15,7 @@ namespace ATFL
         public string CurrentState { get; set; }    /// Текущее состояние
         public string StartState { get; set; }      /// Начальное состояние
 
-        public SM(string TransitionRules)
+        public StateMachine(string TransitionRules)
         {
             StateTable = new List<TransRule>();
             FinalState = new List<string>();
@@ -28,14 +29,14 @@ namespace ATFL
             else
                 Console.WriteLine("Не удалось заполнить таблицу переходов");
         }
-        public SM(string Alphabet, List<TransRule> StateTable, string StartState, List<string> FinalState)
+        public StateMachine(string Alphabet, List<TransRule> StateTable, string StartState, List<string> FinalState)
         {
             this.StartState = StartState;
             this.FinalState = FinalState;
             this.Alphabet = Alphabet;
             this.StateTable = StateTable;
         }
-        public SM(string Alphabet, string TransitionRules)
+        public StateMachine(string Alphabet, string TransitionRules)
         {
             StateTable = new List<TransRule>();
             this.Alphabet = Alphabet;
@@ -169,7 +170,7 @@ namespace ATFL
             StateTable.Sort(rc);
         }
 
-        public SM DFMFromNFM()
+        public StateMachine DFMFromNFM()
         {
             List<TransRule> newStateTable = new List<TransRule>(); /// Новая (пустая) таблица состояний
             List<string> newFinalState = new List<string>();       /// Новый (пустой) список конечных состояний
@@ -185,11 +186,11 @@ namespace ATFL
                 Console.WriteLine($"\nШаг {++count}. Вынимаем из Q множество {{{string.Join(",", set)}}}.");
                 foreach (char c in Alphabet)                       // 2. Для каждой буквы находим next states этого множества
                 {
-                    bool isFinal = FindNextStatesInSet(set, c, out List<string> nextStates);
+                    bool isFinal = FindNextStatesForSet(set, c, out List<string> nextStates);
                     string newStateFromSet = string.Join(null, nextStates);
                     if (nextStates.Count != 0)
                     {
-                        Console.Write($"\nШаг {count}.{c}. ");
+                        Console.Write($"\nШаг {count}.{c} ");
                         if (nextStates.Count > 1) Console.WriteLine($"Недетерминированность по символу {c}. Объединяем результаты перехода в множество:");
                         Console.WriteLine($"{string.Join(null, set)} : {c} -> {newStateFromSet}");
                         Console.WriteLine("Новое правило перехода вносится в таблицу.");
@@ -199,8 +200,9 @@ namespace ATFL
                             newFinalState.Add(newStateFromSet);
                         }
                         newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
-                        if (!ExistsInTable(newStateTable, newStateFromSet) && newStateFromSet != StartState)
+                        if (!(ExistsInTable(newStateTable, newStateFromSet) || newStateFromSet == StartState || WasInQ(Q, nextStates)))
                         {
+                            
                             Console.WriteLine($"Cостояние {newStateFromSet} еще не рассмотрено. Помещаем его в Q.");
                             Q.Enqueue(nextStates);
                         }
@@ -210,12 +212,20 @@ namespace ATFL
                 }
             }
             Console.WriteLine("Q пуста => все пути из начальной вершины рассмотрены.");
-            SM newSM = new SM(Alphabet, newStateTable, StartState, newFinalState);
+            StateMachine newSM = new StateMachine(Alphabet, newStateTable, StartState, newFinalState);
             newSM.SortStateTable();
             return newSM;
         }
 
-        private bool FindNextStatesInSet(List<string> set, char sym, out List<string> nextStates)
+        private bool WasInQ(Queue<List<string>> Q, List<string> nextStates)
+        {
+            bool wasInQ = false;
+            foreach (var q in Q)
+                if (q.Except(nextStates).Count() == 0 && nextStates.Except(q).Count() == 0) { wasInQ = true; break; }
+            return wasInQ;
+        }
+
+        public bool FindNextStatesForSet(List<string> set, char sym, out List<string> nextStates)
         {
             nextStates = new List<string>();
             foreach (string state in set)
@@ -225,10 +235,14 @@ namespace ATFL
                 if (FinalState.Contains(state)) isFin = true;
             return isFin;
         }
-
+        public bool FindNextStates(string curr, char sym, out string[] result)
+        {
+            result = StateTable.FindAll(x => x.Current == curr && x.Symbol == sym).Select(x => x.Next).ToArray();
+            return result.Count() > 0;
+        }
         public void Show(char mode = 'r')
         {
-            const int F = 10;
+            const int F = 16;
             Console.WriteLine($"Начальное состояние: {StartState}");
             if (FinalState.Count == 1) Console.Write("Конечное состояние: ");
             else Console.Write("Конечные состояния: ");
