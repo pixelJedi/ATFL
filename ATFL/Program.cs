@@ -37,13 +37,13 @@ namespace ATFL
                             Console.WriteLine("--------Грамматика------------------------------");
                             Grammar gr = new Grammar(NFM);
                             gr.Show();
+                            Console.WriteLine("--------В КА------------------------------");
+                            StateMachine st = new StateMachine(gr);
+                            st.Show('t');
                             Console.WriteLine("--------Преобразование в ДКА-------------------------------");
-                            StateMachine DFM = NFM.DFMFromNFM();
+                            StateMachine DFM = st.DFMFromNFM();
                             Console.WriteLine("--------Итоговая конфигурация------------------------------");
                             DFM.Show('t');
-                            Console.WriteLine("--------Грамматика------------------------------");
-                            Grammar gr1 = new Grammar(DFM);
-                            gr.Show();
                         }
                     }
                 }

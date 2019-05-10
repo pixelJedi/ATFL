@@ -4,14 +4,39 @@ using System.Linq;
 
 namespace ATFL
 {
+        /// <summary>
+        /// Класс Grammar.
+        /// Описывает формальную грамматику четверкой (N, T, P, S)
+        /// </summary>
     class Grammar
     {
-        public string Name { get; set; } = "ATFL";
+        /// <summary>
+        /// Имя грамматики. Необязательное поле
+        /// </summary>
+        public string Name { get; set; } = "ATFL";  
+        /// <summary>
+        /// Множество терминалов 
+        /// </summary>
         public string T { get; set; }
+        /// <summary>
+        /// Множество нетерминалов
+        /// </summary>
         public string N { get; set; }
+        /// <summary>
+        /// Множество продукций - правил замены вида Left -> Right
+        /// </summary>
         public List<GramRule> P;
+        /// <summary>
+        /// Стартовый символ
+        /// </summary>
         public char S { get; set; } = 'S';
-
+        /// <summary>
+        /// Инициализирует новый экземпляр класса Grammar по указанным множествам.
+        /// </summary>
+        /// <param name="T">Множество терминалов</param>
+        /// <param name="N">Множество нетерминалов</param>
+        /// <param name="P">Множество продукций - правил замены</param>
+        /// <param name="S">Стартовое состояние</param>
         public Grammar(string T, string N, List<GramRule> P, char S)
         {
             this.T = T;
@@ -19,13 +44,20 @@ namespace ATFL
             this.P = P.GetRange(0,P.Count);
             this.S = S;
         }
-        public Grammar(string Expression)
+        /// <summary>
+        /// Инициализирует новый экземпляр класса Grammar по пользовательской строке ввода
+        /// </summary>
+        /// <param name="GrammarRules">Строка с перечислением правил грамматики через запятую</param>
+        public Grammar(string GrammarRules)
         {
-            T = GetT(Expression);
-            ParseOK(S, Expression);
-            N = string.Join(",", P.Distinct().ToList());
+            T = GetT(GrammarRules);
+            ParseOK(S, GrammarRules);
+            N = string.Join(null, P.Distinct().ToList());
         }
-
+        /// <summary>
+        /// Инициализирует новый экземпляр класса Grammar из существующего конечного автомата
+        /// </summary>
+        /// <param name="SM">Конечный автомат</param>
         public Grammar(StateMachine SM)
         {
             Name = SM.Name;
@@ -43,25 +75,20 @@ namespace ATFL
             S = Renames[SM.StartState];
             // 3. Заполняем правила переходов
             P = new List<GramRule>();
+            bool eps = false;
             foreach (var A in Q)
-            {
                 foreach (var a in T)
-                {
-                    string [] B;
-                    if (SM.FindNextStates(A,a, out B))
-                    {
+                    if (SM.FindNextStates(A, a, out string[] B))
                         foreach (string b in B)
                         {
                             P.Add(new GramRule(Renames[A], $"{a}{Renames[b]}"));
                             if (SM.FinalState.Contains(b))
                             {
-                                if (Renames[A] == S) P.Add(new GramRule(Renames[A], "ε"));
+                                if (Renames[A] == S) { eps = true; P.Add(new GramRule(Renames[A], "ε")); };
                                 P.Add(new GramRule(Renames[A], $"{a}"));
                             }
-                        }                            
-                    }
-                }
-            }
+                        }
+            if (eps) T += 'ε';
             Console.WriteLine("Renames:");
             foreach (KeyValuePair <string, char> keyValue in Renames)
                 Console.WriteLine(keyValue.Key + " -> " + keyValue.Value);
@@ -89,7 +116,6 @@ namespace ATFL
                 {
                     foreach (string branch in branches)
                     {
-                        if (ExistsInTable(branch))
                         P.Add(new GramRule(GetNewNTName(), branch));
                         ParseOK(curr, branch);
                     }
@@ -103,9 +129,11 @@ namespace ATFL
             throw new Exception();
         }
 
-        private bool ExistsInTable(string branch)
+        internal bool HasRule(char s, string v)
         {
-            throw new NotImplementedException();
+            foreach (var p in P)
+                if (p.Left == s && p.Right == v) return true;
+            return false;
         }
 
         private string NTLeft = "ABCDEFGHIJKLMNOPQRSTUVXYZ";
@@ -119,6 +147,28 @@ namespace ATFL
                 NTLeft = NTLeft.Remove(0, 1);
             }
             return newNTName;
+        }
+        public char GetNextNT()
+        {
+            char newNTName;
+            if (0 == NTLeft.Length) throw new OverflowException("Использованы все свободные латинские нетерминалы");
+            else
+                newNTName = NTLeft[0];
+            return newNTName;
+        }
+        public bool HasPair(GramRule rule)
+        {
+            if (rule.Right.Length == 1)
+            {
+                foreach (var p in P)
+                    if (p.Right.Length == 2 && p.Left == rule.Left && p.Right[0] == rule.Right[0] && p.Left != p.Right[1])
+                        return true;
+            }
+            else
+                foreach (var p in P)
+                    if (p.Right.Length == 1 && p.Left == rule.Left && p.Right[0] == rule.Right[0]) 
+                        return true;
+            return false;
         }
 
         private string GetT(string expression)
@@ -144,7 +194,7 @@ namespace ATFL
             Console.WriteLine("Старт:\t" + S);
             Console.WriteLine("Продукции:\t");
             foreach (char NT in N)
-                Console.WriteLine($"{NT} = {string.Join(" | ", P.FindAll(x => x.Left == NT).Select(x => x.Right))}");
+                Console.WriteLine($"{NT} -> {string.Join(" | ", P.FindAll(x => x.Left == NT).Select(x => x.Right))}");
 
 
         }
@@ -160,9 +210,9 @@ namespace ATFL
             this.Right = Right;
         }
     
-        public void Display()
+        public string Display()
         {
-            Console.WriteLine($"{Left} = {Right}");
+            return $"{Left} = {Right}";
         }
     }
 }

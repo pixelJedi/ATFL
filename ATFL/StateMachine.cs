@@ -45,6 +45,53 @@ namespace ATFL
             else
                 Console.WriteLine("Не удалось заполнить таблицу переходов");
         }
+        public StateMachine(Grammar G)
+        {
+            int count = 0;                                // Нумерация этапов
+            StateTable = new List<TransRule>();
+            FinalState = new List<string>();
+            Alphabet = G.T;
+            Console.WriteLine($"Шаг {++count}. В алфавит войдут все терминалы грамматики: ∑ = {Alphabet}");
+            StartState = G.S.ToString();
+            Console.WriteLine($"Шаг {++count}. Стартовое состояние соответствует стартовому состоянию грамматики: S = {StartState}");
+            string newNT = G.GetNextNT().ToString();  // Специальное новое допускающее состояние
+            Console.WriteLine($"\nШаг {++count}. Добавим специальное новое допускающее состояние: {newNT}");
+
+            Console.WriteLine("Начнем заполнять таблицу переходов.");
+            int subcount = 0;
+            foreach (var p in G.P)
+            {
+                Console.WriteLine($"\nШаг {count}.{++subcount}. Рассмотрим продукцию {p.Display()}");
+                if (p.Right.Count() == 2)
+                {
+                    StateTable.Add(new TransRule(p.Left.ToString(), p.Right[0], p.Right[1].ToString()));
+                    Console.WriteLine($"Продукция вида A -> aB. Добавим правило δ({p.Left},{p.Right[0]}) = {p.Right[1]}.");
+                    if (G.HasPair(p) && !FinalState.Contains($"{p.Right[1]}"))
+                    {
+                        Console.WriteLine($"{p.Right[1]} - завершающая вершина, т.к. существует парный переход из {p.Left} по тому же символу {p.Right[0]}.");
+                        FinalState.Add(p.Right[1].ToString());
+                    }
+                }
+                else
+                {
+                    Console.Write("Продукция вида A -> a. ");
+                    if (!G.HasPair(p))
+                    {
+                        Console.WriteLine($"Не существует правила вида A -> aB. Поэтому добавим переход в допускающее состояние: δ({p.Left},{p.Right[0]}) = {newNT}.");
+                        StateTable.Add(new TransRule(p.Left.ToString(), p.Right[0], newNT.ToString()));
+                    }
+                    else Console.WriteLine($"Существует парное правило вида A -> aB. Поэтому добавлять переход в таблицу не нужно.");
+                }
+            }
+            if (!FinalState.Contains(StartState) && G.HasRule(G.S, "ε"))
+            {
+                Console.Write($"Шаг {++count}. Существует переход из стартовой вершины {StartState} в ε. {StartState} является заключительным состоянием");
+                FinalState.Add(StartState);
+            }
+            if (!FinalState.Contains(newNT) && ExistsInTable(newNT))
+                FinalState.Add(newNT);
+            SortStateTable();
+        }
 
         private bool ParseOK(string input)
         {
