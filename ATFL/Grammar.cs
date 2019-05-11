@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace ATFL
 {
-        /// <summary>
-        /// Класс Grammar.
-        /// Описывает формальную грамматику четверкой (N, T, P, S)
-        /// </summary>
-    class Grammar
+    /// <summary>
+    /// Класс Grammar.
+    /// Описывает формальную грамматику четверкой (N, T, P, S)
+    /// </summary>
+    [Serializable]
+    class Grammar : IShowable
     {
         /// <summary>
         /// Имя грамматики. Необязательное поле
@@ -25,11 +27,12 @@ namespace ATFL
         /// <summary>
         /// Множество продукций - правил замены вида Left -> Right
         /// </summary>
-        public List<GramRule> P;
+        public List<GramRule> P { get; }
         /// <summary>
         /// Стартовый символ
         /// </summary>
         public char S { get; set; } = 'S';
+        public event ReportEventHandler Report;
         /// <summary>
         /// Инициализирует новый экземпляр класса Grammar по указанным множествам.
         /// </summary>
@@ -50,9 +53,15 @@ namespace ATFL
         /// <param name="GrammarRules">Строка с перечислением правил грамматики через запятую</param>
         public Grammar(string GrammarRules)
         {
-            T = GetT(GrammarRules);
-            ParseOK(S, GrammarRules);
-            N = string.Join(null, P.Distinct().ToList());
+            P = new List<GramRule>();
+            if (ParseOK(GrammarRules))
+            {
+                var t = P.Select(x => x.Left).Distinct();
+                N = string.Join(null, t);
+                T = string.Join(null,GetTFromString(GrammarRules).Except(t));
+            }
+            else
+                Console.WriteLine("Не удалось заполнить таблицу переходов");
         }
         /// <summary>
         /// Инициализирует новый экземпляр класса Grammar из существующего конечного автомата
@@ -65,7 +74,7 @@ namespace ATFL
             T = SM.Alphabet;
             // 2. Сопоставляем исходные состояния и задаем им нетерминалы
             Dictionary<string, char> Renames = new Dictionary<string, char>();
-            var Q = SM.GetSetOfStates();
+            var Q = SM.SetOfStates;
             char curName = S;
             foreach (var t in Q)
             {
@@ -95,44 +104,77 @@ namespace ATFL
             // 5. Все итоговые нетерминальные состояния заносим в N
             N = string.Join(null,Renames.Values);
         }
-
-        private List<string> ParseOK(char curr, string input)
+        
+        private bool ParseOK(string input)
         {
-            Console.WriteLine($"Получено выражение {input}. Ищем внутренние ветви.");
-            if (input.Length == 1)
+            // S -> a|b, V -> c
+            Regex regex = new Regex(@"(\s*\w\s*->\s*\w+\s*(\|\s*\w+\s*)*){1,}");
+            MatchCollection matches = regex.Matches(input);
+            if (matches.Count == 0) return false;
+            string[] rules = input.Split(',');
+            if (rules.Count() == matches.Count && !rules.Contains(""))
             {
-                if (T.Contains(input[0]))
+                foreach (string rule in rules)
                 {
-                    Console.WriteLine($"{input} - одиночный терминал. Ветвь завершена.");
-                    return new List<string> { input };
+                    // S -> a|b
+                    string[] parts = rule.Split(new char[] { '-', '>' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2)
+                    {
+                        // S
+                        char left = parts[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[0][0];
+                        // a|b
+                        string[] rights = parts[1].Split(new char[] { ' ', '|' }, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var right in rights)
+                            // a
+                            P.Add(new GramRule(left, right));
+                    }
+                    else
+                    {
+                        Console.WriteLine("Неверно составленая продукция " + rule);
+                        return false;
+                    }
                 }
-                else
-                    throw new ArgumentException($"{input} - ошибочный символ. Разбор прекращен.");
+
             }
             else
             {
-                string[] branches = input.Split('+');
-                if (branches.Count() > 1)
-                {
-                    foreach (string branch in branches)
-                    {
-                        P.Add(new GramRule(GetNewNTName(), branch));
-                        ParseOK(curr, branch);
-                    }
-
-                }
-                else if (input.Length >= 2)
-                {
-                    //if (T.Contains(input[0]) && T.Contains(input[1])) P.Add();
-                }
+                Console.WriteLine("Правила отсутствуют");
+                return false;
             }
-            throw new Exception();
+            return true;
         }
-
-        internal bool HasRule(char s, string v)
+        private string GetTFromString(string expression)
+        {
+            string temp = "";
+            string acceptable = "+*()->|, ";
+            foreach (char c in expression)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    if (!temp.Contains(c)) temp += c;
+                }
+                else if (!acceptable.Contains(c)) throw new FormatException($"Встречен недопустимый символ {c}");
+            }
+            return temp;
+        }
+        public bool IncludesRule(char s, string v)
         {
             foreach (var p in P)
                 if (p.Left == s && p.Right == v) return true;
+            return false;
+        }
+        public bool HasPair(GramRule rule)
+        {
+            if (rule.Right.Length == 1)
+            {
+                foreach (var p in P)
+                    if (p.Right.Length == 2 && p.Left == rule.Left && p.Right[0] == rule.Right[0] && p.Left != p.Right[1])
+                        return true;
+            }
+            else
+                foreach (var p in P)
+                    if (p.Right.Length == 1 && p.Left == rule.Left && p.Right[0] == rule.Right[0]) 
+                        return true;
             return false;
         }
 
@@ -156,49 +198,53 @@ namespace ATFL
                 newNTName = NTLeft[0];
             return newNTName;
         }
-        public bool HasPair(GramRule rule)
-        {
-            if (rule.Right.Length == 1)
-            {
-                foreach (var p in P)
-                    if (p.Right.Length == 2 && p.Left == rule.Left && p.Right[0] == rule.Right[0] && p.Left != p.Right[1])
-                        return true;
-            }
-            else
-                foreach (var p in P)
-                    if (p.Right.Length == 1 && p.Left == rule.Left && p.Right[0] == rule.Right[0]) 
-                        return true;
-            return false;
-        }
 
-        private string GetT(string expression)
+        private void SortStateTable()
         {
-            string temp = "";
-            string acceptable = "+*() ";
-            foreach (char c in expression)
+            GRuleComparer rc = new GRuleComparer();
+            P.Sort(rc);
+        }
+        public void Show(char mode = 'r')
+        {
+            if (this.Report != null)
             {
-                if (char.IsLetterOrDigit(c))
+                Report(this, new ReportEventArgs("Грамматика\t" + Name));
+                Report(this, new ReportEventArgs("Терминалы:  \t" + T));
+                Report(this, new ReportEventArgs("Нетерминалы:\t" + N));
+                Report(this, new ReportEventArgs("Старт:\t" + S));
+                Report(this, new ReportEventArgs("Продукции:\t"));
+                switch (mode)
                 {
-                    if (!temp.Contains(c)) temp += c;
+                    case 't':
+                        foreach (char NT in N)
+                            Report(this, new ReportEventArgs($"{NT} -> {string.Join(" | ", P.FindAll(x => x.Left == NT).Select(x => x.Right))}"));
+                        break;
+                    default:
+                        foreach (var p in P)
+                            Report(this, new ReportEventArgs(p.Display()));
+                        break;
                 }
-                else if (!acceptable.Contains(c)) throw new FormatException($"Встречен недопустимый символ {c}");
+
             }
-            return temp;
-        }
-
-        public void Show()
-        {
-            Console.WriteLine("Грамматика\t" + Name);
-            Console.WriteLine("Терминалы:  \t" + T);
-            Console.WriteLine("Нетерминалы:\t" + N);
-            Console.WriteLine("Старт:\t" + S);
-            Console.WriteLine("Продукции:\t");
-            foreach (char NT in N)
-                Console.WriteLine($"{NT} -> {string.Join(" | ", P.FindAll(x => x.Left == NT).Select(x => x.Right))}");
-
-
         }
     }
+
+    internal class GRuleComparer : IComparer<GramRule>
+    {
+        public int Compare(GramRule o1, GramRule o2)
+        {
+            if (o1.Left > o2.Left) return 1;
+            else if (o1.Left < o2.Left) return -1;
+            else
+            {
+                int result = String.Compare(o1.Right, o2.Right);
+                if (result > 0) return 1;
+                else if (result < 0) return -1;
+                else return 0;
+            }
+        }
+    }
+
     class GramRule
     {
         public char Left { get; set; } 

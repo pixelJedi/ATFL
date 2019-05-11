@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace ATFL
 {
-    class StateMachine
+    [Serializable]
+    class StateMachine : IShowable
     {
         public string Name { get; set; } = "ATFL";
         private List<TransRule> StateTable;         /// Таблица переходов
@@ -14,6 +16,8 @@ namespace ATFL
         public string Alphabet { get; set; }
         public string CurrentState { get; set; }    /// Текущее состояние
         public string StartState { get; set; }      /// Начальное состояние
+
+        public event ReportEventHandler Report;
 
         public StateMachine(string TransitionRules)
         {
@@ -51,41 +55,41 @@ namespace ATFL
             StateTable = new List<TransRule>();
             FinalState = new List<string>();
             Alphabet = G.T;
-            Console.WriteLine($"Шаг {++count}. В алфавит войдут все терминалы грамматики: ∑ = {Alphabet}");
+            Report(this, new ReportEventArgs($"Шаг {++count}. В алфавит войдут все терминалы грамматики: ∑ = {Alphabet}"));
             StartState = G.S.ToString();
-            Console.WriteLine($"Шаг {++count}. Стартовое состояние соответствует стартовому состоянию грамматики: S = {StartState}");
+            Report(this, new ReportEventArgs($"Шаг {++count}. Стартовое состояние соответствует стартовому состоянию грамматики: S = {StartState}"));
             string newNT = G.GetNextNT().ToString();  // Специальное новое допускающее состояние
-            Console.WriteLine($"\nШаг {++count}. Добавим специальное новое допускающее состояние: {newNT}");
+            Report(this, new ReportEventArgs($"\nШаг {++count}. Добавим специальное новое допускающее состояние: {newNT}"));
 
-            Console.WriteLine("Начнем заполнять таблицу переходов.");
+            Report(this, new ReportEventArgs("Начнем заполнять таблицу переходов."));
             int subcount = 0;
             foreach (var p in G.P)
             {
-                Console.WriteLine($"\nШаг {count}.{++subcount}. Рассмотрим продукцию {p.Display()}");
+                Report(this, new ReportEventArgs($"\nШаг {count}.{++subcount}. Рассмотрим продукцию {p.Display()}"));
                 if (p.Right.Count() == 2)
                 {
                     StateTable.Add(new TransRule(p.Left.ToString(), p.Right[0], p.Right[1].ToString()));
-                    Console.WriteLine($"Продукция вида A -> aB. Добавим правило δ({p.Left},{p.Right[0]}) = {p.Right[1]}.");
+                    Report(this, new ReportEventArgs($"Продукция вида A -> aB. Добавим правило δ({p.Left},{p.Right[0]}) = {p.Right[1]}."));
                     if (G.HasPair(p) && !FinalState.Contains($"{p.Right[1]}"))
                     {
-                        Console.WriteLine($"{p.Right[1]} - завершающая вершина, т.к. существует парный переход из {p.Left} по тому же символу {p.Right[0]}.");
+                        Report(this, new ReportEventArgs($"{p.Right[1]} - завершающая вершина, т.к. существует парный переход из {p.Left} по тому же символу {p.Right[0]}."));
                         FinalState.Add(p.Right[1].ToString());
                     }
                 }
                 else
                 {
-                    Console.Write("Продукция вида A -> a. ");
+                    Report(this, new ReportEventArgs("Продукция вида A -> a. "));
                     if (!G.HasPair(p))
                     {
-                        Console.WriteLine($"Не существует правила вида A -> aB. Поэтому добавим переход в допускающее состояние: δ({p.Left},{p.Right[0]}) = {newNT}.");
+                        Report(this, new ReportEventArgs($"Не существует правила вида A -> aB. Поэтому добавим переход в допускающее состояние: δ({p.Left},{p.Right[0]}) = {newNT}."));
                         StateTable.Add(new TransRule(p.Left.ToString(), p.Right[0], newNT.ToString()));
                     }
-                    else Console.WriteLine($"Существует парное правило вида A -> aB. Поэтому добавлять переход в таблицу не нужно.");
+                    else Report(this, new ReportEventArgs($"Существует парное правило вида A -> aB. Поэтому добавлять переход в таблицу не нужно."));
                 }
             }
-            if (!FinalState.Contains(StartState) && G.HasRule(G.S, "ε"))
+            if (!FinalState.Contains(StartState) && G.IncludesRule(G.S, "ε"))
             {
-                Console.Write($"Шаг {++count}. Существует переход из стартовой вершины {StartState} в ε. {StartState} является заключительным состоянием");
+                Report(this, new ReportEventArgs($"Шаг {++count}. Существует переход из стартовой вершины {StartState} в ε. {StartState} является заключительным состоянием"));
                 FinalState.Add(StartState);
             }
             if (!FinalState.Contains(newNT) && ExistsInTable(newNT))
@@ -93,7 +97,30 @@ namespace ATFL
             SortStateTable();
         }
 
-        private bool ParseOK(string input)
+        public string GetRealAlphabet()     // Возваращает перечень входных символов, задействованных в текущей таблице переходов
+        {
+            string str = "";
+            foreach (TransRule rule in StateTable)
+            {
+                if (!str.Contains(rule.Symbol)) str += rule.Symbol;
+            }
+            return str;
+        }
+        public string[] SetOfStates         // Возвращает массив имен состояний, задействованных в таблице переходов
+        {
+            get
+            {
+                List<string> str = new List<string>();
+                foreach (TransRule rule in StateTable)
+                {
+                    if (!str.Contains(rule.Next)) str.Add(rule.Next);
+                    if (!str.Contains(rule.Current)) str.Add(rule.Current);
+                }
+                return str.ToArray();
+            }
+        }
+
+        private bool ParseOK(string input)  // Основной парсящий метод
         {
             bool isOK = true;
 
@@ -111,27 +138,6 @@ namespace ATFL
             }
             return isOK;
         }
-
-        public string GetRealAlphabet()     // Возваращает перечень взодных символов, задействованных в текущей таблице переходов
-        {
-            string str = "";
-            foreach (TransRule rule in StateTable)
-            {
-                if (!str.Contains(rule.Symbol)) str += rule.Symbol;
-            }
-            return str;
-        }
-        public string[] GetSetOfStates()    // Возвращает массив наименований состояний, задействованных в таблице переходов
-        {
-            List<string> str = new List<string>();
-            foreach (TransRule rule in StateTable)
-            {
-                if (!str.Contains(rule.Next)) str.Add(rule.Next);
-                if (!str.Contains(rule.Current)) str.Add(rule.Current);
-            }
-            return str.ToArray();
-        }
-
         private bool FillStartFin(string input)
         {
 
@@ -163,31 +169,9 @@ namespace ATFL
                 return false;
             }
         }
-        private bool ExistsInTable(string state)
-        {
-            bool exists = false;
-            foreach (TransRule rule in StateTable)
-                if (rule.Current == state || rule.Next == state)
-                {
-                    exists = true;
-                    break;
-                }
-            return exists;
-        }
-        private bool ExistsInTable(List<TransRule> stateTable, string state, char c = 'c')
-        {
-            bool exists = false;
-            foreach (TransRule rule in stateTable)
-                if (c == 'c' && rule.Current == state || c == 'n' && rule.Next == state)
-                {
-                    exists = true;
-                    break;
-                }
-            return exists;
-        }
         private bool FillStates(string input)
         {   
-            Regex regex = new Regex(@"\s*\w+\s*:\s*(\w|\?)\s*->\s*\w+\s*");  // Ввод по образцу [current]: [symbol] -> [next]
+            Regex regex = new Regex(@"\s*\w+\s*:\s*(\w|ε)\s*->\s*\w+\s*");  // Ввод по образцу [current]: [symbol] -> [next]
             MatchCollection matches = regex.Matches(input);
             if (matches.Count == 1)
             {
@@ -210,11 +194,33 @@ namespace ATFL
                 return false;
             }
         }
-
         private void SortStateTable()
         {
-            RuleComparer rc = new RuleComparer();
+            TRuleComparer rc = new TRuleComparer();
             StateTable.Sort(rc);
+        }
+
+        private bool ExistsInTable(string state)
+        {
+            bool exists = false;
+            foreach (TransRule rule in StateTable)
+                if (rule.Current == state || rule.Next == state)
+                {
+                    exists = true;
+                    break;
+                }
+            return exists;
+        }
+        private bool ExistsInTable(List<TransRule> stateTable, string state, char c = 'c')
+        {
+            bool exists = false;
+            foreach (TransRule rule in stateTable)
+                if (c == 'c' && rule.Current == state || c == 'n' && rule.Next == state)
+                {
+                    exists = true;
+                    break;
+                }
+            return exists;
         }
 
         public StateMachine DFMFromNFM()
@@ -224,41 +230,42 @@ namespace ATFL
             Queue<List<string>> Q = new Queue<List<string>>();     /// Очередь для последовательного разбора множеств состояний
 
             int count = 0;                                         /// Нумерация этапов
-            Console.WriteLine("Q - очередь разбора связей.");
-            Console.WriteLine($"Изначально в Q находится стартовое состояние {{{StartState}}}.");
+            Report(this, new ReportEventArgs("Q - очередь разбора связей."));
+            Report(this, new ReportEventArgs($"Изначально в Q находится стартовое состояние {{{StartState}}}."));
             Q.Enqueue(new List<string> { StartState });            // Стартовая вершина включена в список
             while (Q.Count != 0)                                   // Пока не будут разобраны все связи
             {
                 List<string> set = Q.Dequeue();                    // 1. Вытаскиваем множество состояний из очереди
-                Console.WriteLine($"\nШаг {++count}. Вынимаем из Q множество {{{string.Join(",", set)}}}.");
+                Report(this, new ReportEventArgs($"\nШаг {++count}. Вынимаем из Q множество {{{string.Join(",", set)}}}."));
                 foreach (char c in Alphabet)                       // 2. Для каждой буквы находим next states этого множества
                 {
                     bool isFinal = FindNextStatesForSet(set, c, out List<string> nextStates);
                     string newStateFromSet = string.Join(null, nextStates);
                     if (nextStates.Count != 0)
                     {
-                        Console.Write($"\nШаг {count}.{c} ");
-                        if (nextStates.Count > 1) Console.WriteLine($"Недетерминированность по символу {c}. Объединяем результаты перехода в множество:");
-                        Console.WriteLine($"{string.Join(null, set)} : {c} -> {newStateFromSet}");
-                        Console.WriteLine("Новое правило перехода вносится в таблицу.");
+                        Report(this, new ReportEventArgs($"\nШаг {count}.{c} "));
+                        if (nextStates.Count > 1)
+                            Report(this, new ReportEventArgs($"Недетерминированность по символу {c}. Объединяем результаты перехода в множество:"));
+                        Report(this, new ReportEventArgs($"{string.Join(null, set)} : {c} -> {newStateFromSet}"));
+                        Report(this, new ReportEventArgs("Новое правило перехода вносится в таблицу."));
                         if (isFinal && !ExistsInTable(newStateTable, newStateFromSet, 'n'))
                         {
-                            Console.WriteLine($"Состояние {newStateFromSet} - завершающее, т.к. среди исходных было завершающее.");
+                            Report(this, new ReportEventArgs($"Состояние {newStateFromSet} - завершающее, т.к. среди исходных было завершающее."));
                             newFinalState.Add(newStateFromSet);
                         }
                         newStateTable.Add(new TransRule(string.Join(null, set), c, newStateFromSet));
                         if (!(ExistsInTable(newStateTable, newStateFromSet) || newStateFromSet == StartState || WasInQ(Q, nextStates)))
                         {
-                            
-                            Console.WriteLine($"Cостояние {newStateFromSet} еще не рассмотрено. Помещаем его в Q.");
+
+                            Report(this, new ReportEventArgs($"Cостояние {newStateFromSet} еще не рассмотрено. Помещаем его в Q."));
                             Q.Enqueue(nextStates);
                         }
                         else
-                            Console.WriteLine($"Cостояние {newStateFromSet} уже рассмотрено. Переходим дальше.");
+                            Report(this, new ReportEventArgs($"Cостояние {newStateFromSet} уже рассмотрено. Переходим дальше."));
                     }
                 }
             }
-            Console.WriteLine("Q пуста => все пути из начальной вершины рассмотрены.");
+            Report(this, new ReportEventArgs("Q пуста => все пути из начальной вершины рассмотрены."));
             StateMachine newSM = new StateMachine(Alphabet, newStateTable, StartState, newFinalState);
             newSM.SortStateTable();
             return newSM;
@@ -287,45 +294,48 @@ namespace ATFL
             result = StateTable.FindAll(x => x.Current == curr && x.Symbol == sym).Select(x => x.Next).ToArray();
             return result.Count() > 0;
         }
+
         public void Show(char mode = 'r')
         {
-            const int F = 16;
-            Console.WriteLine($"Начальное состояние: {StartState}");
-            if (FinalState.Count == 1) Console.Write("Конечное состояние: ");
-            else Console.Write("Конечные состояния: ");
-            foreach (var t in FinalState) Console.Write($"{t} ");
-            Console.WriteLine();
-            Console.WriteLine("Таблица переходов: ");
+            const int F = 10;
+            Report(this, new ReportEventArgs($"Начальное состояние: {StartState}"));
+            string fins = FinalState.Count == 1 ? "Конечное состояние: " : "Конечные состояния: ";
+            foreach (var t in FinalState)
+                fins += $"{t} ";
+            Report(this, new ReportEventArgs(fins));
+            Report(this, new ReportEventArgs("Таблица переходов: "));
+            StringBuilder sb = new StringBuilder();
             switch (mode)
             {
                 case 't':
                     // Особая первая строка
-                    Console.Write($"{' ',-F}");
-                    foreach (char c in Alphabet) Console.Write($"{c,-F}");
-                    Console.WriteLine();
+                    sb.Append($"{' ',-F}");
+                    foreach (char c in Alphabet) sb.Append($"{c,-F}");
+                    sb.AppendLine();
                     // Остальные строки
-                    string [] currNames = GetSetOfStates().ToArray();
+                    string [] currNames = SetOfStates.ToArray();
                     foreach (string state in currNames)
                     {
-                        Console.Write($"{state,-F}");
+                        sb.Append($"{state,-F}");
                         foreach (char c in Alphabet)
                         {
                             var nexts = StateTable.FindAll(x => x.Current == state && x.Symbol == c).Select(x => x.Next);
-                            if (nexts.Count() > 0) Console.Write($"{string.Join(",", nexts),-F}");
-                            else Console.Write($"{'-',-F}");
+                            if (nexts.Count() > 0) sb.Append($"{string.Join(",", nexts),-F}");
+                            else sb.Append($"{'-',-F}");
                         }
-                        Console.WriteLine();
+                        sb.AppendLine();
                     }
+                    Report(this, new ReportEventArgs(sb.ToString()));
                     break;
                 default:
                     foreach (TransRule rule in StateTable)
-                        rule.DisplayRule();
+                        Report(this, new ReportEventArgs(rule.DisplayRule()));
                     break;
             }
         }
     }
 
-    internal class RuleComparer : IComparer<TransRule>
+    internal class TRuleComparer : IComparer<TransRule>
     {
         public int Compare(TransRule o1, TransRule o2)
         {
@@ -354,10 +364,19 @@ namespace ATFL
         }
     }
 
-    internal class TransRule
+    internal sealed class TransRule
     { 
+        /// <summary>
+        /// Текущее состояние
+        /// </summary>
         public string Current { get; set; }
+        /// <summary>
+        /// Условие перехода
+        /// </summary>
         public char   Symbol  { get; set; }
+        /// <summary>
+        /// Следующее состояние
+        /// </summary>
         public string Next    { get; set; }
         
         public TransRule(string current, char symbol, string next)
@@ -366,9 +385,9 @@ namespace ATFL
             this.Symbol = symbol;
             this.Next = next;
         }
-        public void DisplayRule()
+        public string DisplayRule()
         {
-            Console.WriteLine($"{Current}: {Symbol} -> {Next}");
+            return $"{Current}: {Symbol} -> {Next}";
         }
     }
 

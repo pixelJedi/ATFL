@@ -5,47 +5,22 @@ namespace ATFL
 {
     class Program
     {
+        public static Reporter R;
         static void Main(string[] args)
         {
-            string testring = "";
-            using (StreamReader fs = new StreamReader(@"testmachine1.txt"))
+            string DestDir = @"D:\Test\";
+            string ExtensionName = ".txt";
+            string Source = "testmachine1";
+            R = new Reporter(DestDir,ExtensionName);
+            string testring = "s1: a -> s1, s1: a -> s2, s2: b -> s3, s3: a -> s1 | s1 s3";
+            using (StreamReader fs = new StreamReader(Source + ExtensionName))
             {
-                int i = 1;
-                string DestDir = @"D:\Test\";
-                string TaskName = "ConvertToDKA";
-                string ExtensionName = ".txt";
-                TextWriter tmp = Console.Out;
                 while (true)
                 {
                     testring = fs.ReadLine();
-                    if (testring == null || testring == "q")
-                    {
-                        Console.SetOut(tmp);
-                        Console.WriteLine($"Успешно. Записанные файлы ({i-1}) хранятся по адресу {DestDir}");
-                        break;
-                    }
-                    else
-                    {
-                        using (StreamWriter log = new StreamWriter(DestDir + TaskName + i++ + ExtensionName))
-                        {
-                            Console.SetOut(log);
-                            Console.WriteLine("--------Ввод данных----------------------------------------");
-                            Console.WriteLine(testring);
-                            Console.WriteLine("--------Распознана конфигурация----------------------------");
-                            StateMachine NFM = new StateMachine(testring);
-                            NFM.Show('t');
-                            Console.WriteLine("--------Грамматика------------------------------");
-                            Grammar gr = new Grammar(NFM);
-                            gr.Show();
-                            Console.WriteLine("--------В КА------------------------------");
-                            StateMachine st = new StateMachine(gr);
-                            st.Show('t');
-                            Console.WriteLine("--------Преобразование в ДКА-------------------------------");
-                            StateMachine DFM = st.DFMFromNFM();
-                            Console.WriteLine("--------Итоговая конфигурация------------------------------");
-                            DFM.Show('t');
-                        }
-                    }
+                    if (testring == null || testring == "q") break;
+                    string TaskName = "MakeDFA";
+                    R.MakeReport(TaskName, Task.MakeDFAFromNDFA, testring);
                 }
             }
         }
