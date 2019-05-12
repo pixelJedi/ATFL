@@ -28,6 +28,7 @@ namespace ATFL
         private readonly string Extension = ".txt";
         private int Number = 1;
         private StreamWriter Log { get; set; }
+        public Queue<string> queue { get; }
 
         public delegate bool Function(string input);
 
@@ -40,6 +41,7 @@ namespace ATFL
         {
             this.DestDir = DestinationDirectory;
             this.Extension = Extension;
+            this.queue = new Queue<string>();
         }
         /// <summary>
         ///  Инициализирует составитель отчётов по умолчанию: путь сохранения D:\Test\, расширение .txt 
@@ -66,6 +68,10 @@ namespace ATFL
         public void CompleteLog(object sender, ReportEventArgs e)
         {
             Log.WriteLine(e.message);
+        }
+        public void CompleteStages(object sender, ReportEventArgs e)
+        {
+            queue.Enqueue(e.message);
         }
     }
 }

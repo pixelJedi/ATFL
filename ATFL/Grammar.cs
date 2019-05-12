@@ -245,7 +245,7 @@ namespace ATFL
         }
     }
 
-    class GramRule
+    sealed class GramRule
     {
         public char Left { get; set; } 
         public string Right { get; set; }
