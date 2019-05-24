@@ -32,7 +32,7 @@ namespace ATFL
         /// Стартовый символ
         /// </summary>
         public char S { get; set; } = 'S';
-        public event ReportEventHandler Report;
+        public event ReportEventHandler Report = Program.R.CompleteLog;
         /// <summary>
         /// Инициализирует новый экземпляр класса Grammar по указанным множествам.
         /// </summary>
@@ -87,7 +87,7 @@ namespace ATFL
             bool eps = false;
             foreach (var A in Q)
                 foreach (var a in T)
-                    if (SM.FindNextStates(A, a, out string[] B))
+                    if (SM.FindNextStates(A, a, out List<string> B))
                         foreach (string b in B)
                         {
                             P.Add(new GramRule(Renames[A], $"{a}{Renames[b]}"));
@@ -104,7 +104,11 @@ namespace ATFL
             // 5. Все итоговые нетерминальные состояния заносим в N
             N = string.Join(null,Renames.Values);
         }
-        
+        /// <summary>
+        /// Основной метод для выделения правил перехода из входной строки для класса Grammar
+        /// </summary>
+        /// <param name="input">Входная строка в формате GramRule1, GramRule2, ... GramRuleN</param>
+        /// <returns>Сигнал об успешном выполнении парсинга</returns>
         private bool ParseOK(string input)
         {
             // S -> a|b, V -> c

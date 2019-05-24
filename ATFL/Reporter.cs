@@ -7,7 +7,13 @@ using System.IO;
 
 namespace ATFL
 {
+    /// <summary>
+    /// Стандартизированный делегат для управления обработкой события Report
+    /// </summary>
     public delegate void ReportEventHandler(object sender, ReportEventArgs e);
+    /// <summary>
+    /// Служебный класс для броадкастинга сообщений в лог
+    /// </summary>
     public class ReportEventArgs : EventArgs
     {
         public string message;
@@ -16,21 +22,25 @@ namespace ATFL
             message = text;
         }
     }
+    /// <summary>
+    /// Интерфейс для обозначения выводимых в лог классов
+    /// </summary>
     interface IShowable
     {
         event ReportEventHandler Report;
         void Show(char mode);
     }
-
+    /// <summary>
+    /// Класс Reporter. Управляет запуском и записью процесса решения задач
+    /// </summary>
     public class Reporter
     {
-        private readonly string DestDir = @"D:\Test\";
-        private readonly string Extension = ".txt";
-        private int Number = 1;
-        private StreamWriter Log { get; set; }
-        public Queue<string> queue { get; }
+        public string DestDir { get;  } = @"D:\Test\";  /// Каталог для сохранения сгенерированных решений задачи
+        public string Extension { get; } = ".txt";      /// Расширение для сохранения сгенерированных решений задачи
+        private int Number = 1;                         /// Внутренний порядковый номер генерируемого файла
+        private StreamWriter Log { get; set; }          /// Основной поток записи поступивших данных
+        public Queue<string> Q { get; }                 /// Очередь для пошагового сохранения поступивших данных
 
-        public delegate bool Function(string input);
 
         /// <summary>
         /// Инициализация составитель отчётов с указанием корневого каталога.
@@ -41,7 +51,7 @@ namespace ATFL
         {
             this.DestDir = DestinationDirectory;
             this.Extension = Extension;
-            this.queue = new Queue<string>();
+            this.Q = new Queue<string>();
         }
         /// <summary>
         ///  Инициализирует составитель отчётов по умолчанию: путь сохранения D:\Test\, расширение .txt 
@@ -68,10 +78,11 @@ namespace ATFL
         public void CompleteLog(object sender, ReportEventArgs e)
         {
             Log.WriteLine(e.message);
+            CompleteStages(this, new ReportEventArgs(e.message + "\n"));
         }
         public void CompleteStages(object sender, ReportEventArgs e)
         {
-            queue.Enqueue(e.message);
+            Q.Enqueue(e.message);
         }
     }
 }
