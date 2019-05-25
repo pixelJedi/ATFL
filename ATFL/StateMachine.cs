@@ -259,6 +259,7 @@ namespace ATFL
             Queue<List<string>> Q = new Queue<List<string>>();     /// Очередь для последовательного разбора множеств состояний
             int numerator = 0;                                     /// Нумерация этапов
             // ----------< Детерминизация правил КА >---------------------------
+            Report(this, new ReportEventArgs("Преобразование в ДКА", 't'));
             Report(this, new ReportEventArgs($"Q - очередь разбора состояний. Изначально в Q находится стартовое состояние {{{StartState}}}."));
             Q.Enqueue(new List<string> { StartState });            // Стартовая вершина включена в список
             while (Q.Count != 0)                                   // Пока не будут разобраны все связи
@@ -338,45 +339,42 @@ namespace ATFL
         /// Обеспечивает форматированный вывод конфигурации конечного автомата
         /// </summary>
         /// <param name="mode">Режим вывода: r для вывода в виде перечня правил, t для табличного вывода</param>
-        public void Show(char mode = 'r')
+        public string Show(char mode = 'r')
         {
             const int F = 10;
-            Report(this, new ReportEventArgs($"Начальное состояние: {StartState}"));
-            string temp = FinalState.Count == 1 ? "Конечное состояние: " : "Конечные состояния: ";
+            string temp = "";
+            temp += $"Начальное состояние: {StartState}\n";
+            temp += FinalState.Count == 1 ? "Конечное состояние: " : "Конечные состояния: ";
             foreach (var t in FinalState)
                 temp += $"{t} ";
-            Report(this, new ReportEventArgs(temp));
-            StringBuilder sb = new StringBuilder();
-            sb.Append("Таблица переходов: \n");
+            temp += "\nТаблица переходов: \n";
             switch (mode)
             {
                 case 't':
                     // Особая первая строка
-                    sb.Append($"{' ',-F}");
-                    foreach (char c in Alphabet) sb.Append($"{c,-F}");
-                    sb.AppendLine();
+                    temp += $"{' ',-F}";
+                    foreach (char c in Alphabet) temp += $"{c,-F}";
+                    temp += '\n';
                     // Остальные строки
                     string [] currNames = SetOfStates.ToArray();
                     foreach (string state in currNames)
                     {
-                        sb.Append($"{state,-F}");
+                        temp += $"{state,-F}";
                         foreach (char c in Alphabet)
                         {
                             var nexts = StateTable.FindAll(x => x.Current == state && x.Symbol == c).Select(x => x.Next);
-                            if (nexts.Count() > 0) sb.Append($"{string.Join(",", nexts),-F}");
-                            else sb.Append($"{'-',-F}");
+                            if (nexts.Count() > 0) temp += $"{string.Join(",", nexts),-F}";
+                            else temp += $"{'-',-F}";
                         }
-                        sb.AppendLine();
+                        temp += '\n';
                     }
-                    Report(this, new ReportEventArgs(sb.ToString()));
                     break;
                 default:
-                    temp = "";
                     foreach (TransRule rule in StateTable)
-                        temp += rule.DisplayRule();
-                    Report(this, new ReportEventArgs(temp));
+                        temp += rule.DisplayRule() + '\n';
                     break;
             }
+            return temp;
         }
     }
 
@@ -389,10 +387,7 @@ namespace ATFL
             {
                 return 1;
             }
-            else if (result < 0)
-            {
-                return -1;
-            }
+            else if (result < 0) { return -1; }
             else
             {
                 if (o1.Symbol > o2.Symbol) return 1;

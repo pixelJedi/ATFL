@@ -208,28 +208,29 @@ namespace ATFL
             GRuleComparer rc = new GRuleComparer();
             P.Sort(rc);
         }
-        public void Show(char mode = 'r')
+        public string Show(char mode = 'r')
         {
+            string temp = "";
             if (this.Report != null)
             {
-                Report(this, new ReportEventArgs("Грамматика\t" + Name));
-                Report(this, new ReportEventArgs("Терминалы:  \t" + T));
-                Report(this, new ReportEventArgs("Нетерминалы:\t" + N));
-                Report(this, new ReportEventArgs("Старт:\t" + S));
-                Report(this, new ReportEventArgs("Продукции:\t"));
+                temp += "Грамматика\t" + Name + 
+                        "\nТерминалы:  \t" + T + 
+                        "\nНетерминалы:\t" + N + 
+                        "\nСтарт:\t" + S +
+                        "\nПродукции:\t";
                 switch (mode)
                 {
                     case 't':
                         foreach (char NT in N)
-                            Report(this, new ReportEventArgs($"{NT} -> {string.Join(" | ", P.FindAll(x => x.Left == NT).Select(x => x.Right))}"));
+                            temp += $"{NT} -> {string.Join(" | ", P.FindAll(x => x.Left == NT).Select(x => x.Right))}\n";
                         break;
                     default:
                         foreach (var p in P)
-                            Report(this, new ReportEventArgs(p.Display()));
+                            temp += p.Display() + '\n';
                         break;
                 }
-
             }
+            return temp;
         }
     }
 
@@ -253,17 +254,8 @@ namespace ATFL
     {
         public char Left { get; set; } 
         public string Right { get; set; }
-
-        public GramRule(char Left, string Right)
-        {
-            this.Left = Left;
-            this.Right = Right;
-        }
-    
-        public string Display()
-        {
-            return $"{Left} = {Right}";
-        }
+        public GramRule(char Left, string Right) { this.Left = Left; this.Right = Right; }
+        public string Display() { return $"{Left} = {Right}"; }
     }
 }
 

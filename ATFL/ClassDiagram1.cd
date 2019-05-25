@@ -3,7 +3,7 @@
   <Class Name="ATFL.ReportEventArgs">
     <Position X="7.5" Y="0.5" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACA=</HashCode>
+      <HashCode>AAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Reporter.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -12,15 +12,8 @@
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
-    <NestedTypes>
-      <Delegate Name="ATFL.Reporter.Function">
-        <TypeIdentifier>
-          <NewMemberFileName>Reporter.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Delegate>
-    </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAEAAAAAAAAAAACAAEBACEAAAAgAAQAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAEAAABAAgAAAACAAAIACGAAAAgAAQAAAgAAAIBgAAA=</HashCode>
       <FileName>Reporter.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -63,11 +56,39 @@
     </TypeIdentifier>
     <Lollipop Position="0.2" Collapsed="true" />
   </Class>
-  <Class Name="TransRule" Collapsed="true">
+  <Class Name="ATFL.TransRule" Collapsed="true">
     <Position X="0.5" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AgAAAAAAAAAAAIAAAACAAAAAAAAAAAAAAAAAAAAACAA=</HashCode>
       <FileName>StateMachine.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ATFL.Program">
+    <Position X="9.5" Y="0.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAQA=</HashCode>
+      <FileName>Program.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ATFL.Step" Collapsed="true">
+    <Position X="5.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAACA=</HashCode>
+      <FileName>Reporter.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ATFL.MainForm" Collapsed="true">
+    <Position X="9.5" Y="2.25" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>DAIBgAAAIGEACEEQAAKAUAAjASAQAYwECEAAAEABJAA=</HashCode>
+      <FileName>MainForm.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ATFL.OptionsForm" Collapsed="true">
+    <Position X="9.5" Y="3" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>gAAAAAAAADABAhAAAACAAAACBIAYAIAAAAAAAIACACA=</HashCode>
+      <FileName>OptionsForm.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Interface Name="ATFL.IShowable">

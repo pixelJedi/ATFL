@@ -12,16 +12,19 @@ namespace ATFL
             {
                 new Task(
                 "Детерминизация КА",
+                "s1: a -> s1, s1: b -> s1, s1: a -> s2, ... |  s1 s2",
                 "Последовательно рассматриваются все переходы и, при необходимости, образуются эквивалентные состояния с единственным переходом по символу",
                 MakeDFAFromNDFA
                 ),
                 new Task(
                 "Построение КА по грамматике",
+                "s1: a -> s1, s1: b -> s1, s1: a -> s2, ... ",
                 "Построение КА по грамматике",
                 MakeAutomataFromGrammar
                 ),
                 new Task(
                 "Построение грамматики по КА",
+                "s1: a -> s1, s1: b -> s1, s1: a -> s2, ... ",
                 "Построение грамматики по КА",
                 MakeGrammarFromAutomata
                 )
@@ -29,28 +32,24 @@ namespace ATFL
             };
         }
         public static bool MakeDFAFromNDFA(string input)
-            {
-                StateMachine SM = new StateMachine(input);
-                StateMachine DFM;
-                Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Ввод данных-------------------------------------\n" + input));
-                Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Распознана конфигурация-------------------------"));
-                SM.Show('t');
-                Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Делаем ДКА--------------------------------------"));
-                DFM = SM.DFMFromNFM();
-                Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------После преобразований----------------------------"));
-                DFM.Show('t');
-                return true;
-            }
+        {
+            StateMachine SM = new StateMachine(input);
+            StateMachine DFM;
+            Program.R.CompleteLog(Program.R, new ReportEventArgs(SM.Show('t'), 's'));
+            DFM = SM.DFMFromNFM();
+            Program.R.CompleteLog(Program.R, new ReportEventArgs(DFM.Show('t'), 'r'));
+            return true;
+        }
         public static bool MakeAutomataFromGrammar(string input)
         {
             Grammar G = new Grammar(input);
             StateMachine SM;
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Ввод данных-------------------------------------\n" + input));
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Распознана конфигурация-------------------------"));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Ввод данных---------------\n" + input));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Распознана конфигурация---"));
             G.Show('t');
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Делаем КА---------------------------------------"));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Делаем КА-----------------"));
             SM = new StateMachine(G);
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------После преобразований----------------------------"));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------После преобразований------"));
             SM.Show('t');
             return true;
         }
@@ -58,12 +57,12 @@ namespace ATFL
         {
             StateMachine SM = new StateMachine(input);
             Grammar G;
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Ввод данных-------------------------------------\n" + input));
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Распознана конфигурация-------------------------"));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Ввод данных---------------\n" + input));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Распознана конфигурация---"));
             SM.Show('t');
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Делаем грамматику-------------------------------"));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------Делаем грамматику---------"));
             G = new Grammar(SM);
-            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------После преобразований----------------------------"));
+            Program.R.CompleteLog(Program.R, new ReportEventArgs("------------------После преобразований------"));
             G.Show('t');
             return true;
         }
@@ -72,13 +71,15 @@ namespace ATFL
     public class Task
     {
         public string Name { get; }
+        public string Format { get; set; }
         public string Description { get; }
         public Function Operation { get; }
-        public Task(string N, string D, Function O)
+        public Task(string N, string F, string D, Function O)
         {
-            Name = N;
+            Name  = N;
+            Format = F;
             Description = D;
-            Operation = O;
+            Operation   = O;
         }
     }
 }
